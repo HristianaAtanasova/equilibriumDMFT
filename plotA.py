@@ -8,10 +8,10 @@ def plotGreen(U, T, v_0, mu, wC, v, tmax, dt, dw, tol, treshold, n_loops, **kwar
     t = np.arange(0, tmax, dt)
     Cut = np.pi/dt
     ft = np.arange(0, Cut, dt)
-    wmax = np.pi/(dt)
+    wmax = np.pi/dt
     dw = 2*np.pi/Cut
     fw = np.arange(-wmax, wmax, dw)
-    w = np.arange(-10, 10, dw)
+    w = np.arange(-20, 20, dw)
         
     spin = 0
     init = 1
@@ -38,11 +38,12 @@ def plotGreen(U, T, v_0, mu, wC, v, tmax, dt, dw, tol, treshold, n_loops, **kwar
     # plt.plot(t, np.imag(Gles), 'b--', t, np.real(Gles), 'r--')
     # plt.plot(t, np.imag(Ggtr), 'b', t, np.real(Ggtr), 'r')
     plt.plot(w, np.imag(fGadv[a:b]))
-    plt.legend(loc='best')
+    #plt.legend(loc='best')
     plt.ylabel('A($\omega$)')
     plt.xlabel('$\omega$')
     plt.grid()
-    plt.show()
+    #plt.show()
+    plt.savefig('A.pdf')
 
 def main():
     parser = argparse.ArgumentParser(description = "plot Green's function ")

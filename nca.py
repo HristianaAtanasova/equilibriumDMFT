@@ -146,31 +146,24 @@ def solve(Green, Delta, G_0, U, t, init, treshold):
     for t1 in range(len(t)):
         for t_1 in range(t1+1):
 
-            Green[0, 0, i, t_1, t1] = K[i, 0, t_1, t1] * G[1, (t1-t_1)] + K[i, 2, t_1, t1] * G[3, (t1-t_1)]
-            Green[1, 0, i, t_1, t1] = K[i, 1, t_1, t1] * G[0, (t1-t_1)] + K[i, 3, t_1, t1] * G[2, (t1-t_1)]
-            Green[0, 1, i, t_1, t1] = K[i, 0, t_1, t1] * G[2, (t1-t_1)] + K[i, 1, t_1, t1] * G[3, (t1-t_1)]
-            Green[1, 1, i, t_1, t1] = K[i, 2, t_1, t1] * G[0, (t1-t_1)] + K[i, 3, t_1, t1] * G[1, (t1-t_1)]
+            Green[0, 0, t_1, t1] = K[i, 0, t_1, t1] * G[1, (t1-t_1)] + K[i, 2, t_1, t1] * G[3, (t1-t_1)]
+            Green[1, 0, t_1, t1] = K[i, 1, t_1, t1] * G[0, (t1-t_1)] + K[i, 3, t_1, t1] * G[2, (t1-t_1)]
+            Green[0, 1, t_1, t1] = K[i, 0, t_1, t1] * G[2, (t1-t_1)] + K[i, 1, t_1, t1] * G[3, (t1-t_1)]
+            Green[1, 1, t_1, t1] = K[i, 2, t_1, t1] * G[0, (t1-t_1)] + K[i, 3, t_1, t1] * G[1, (t1-t_1)]
 
     # output
     Vertexfunction = 'K_i={}'
     Greensfunction = 'Green_i={}'
     np.savez_compressed(Vertexfunction.format(init), t=t, K=K[i])
-    np.savez_compressed(Greensfunction.format(init), t=t, Green=Green[:,:,i])
+    np.savez_compressed(Greensfunction.format(init), t=t, Green=Green)
 
     # plt.plot(t, np.real(Green[1,0,1, :, len(t)-1]), 'y--', t, np.imag(Green[1, 0, 1, :, len(t)-1]), 'k--')
     # plt.plot(t, np.real(Green[0,1,1, :, len(t)-1]), 'r--', t, np.imag(Green[0, 1, 1, :, len(t)-1]), 'b--')
     # plt.grid()
     # plt.show()
 
-    #print('1 - (Green_gtr + Green_les) for Spin Up site', i, 'is', 1 - np.real(Green[0, 0, i, len(t) - 1, len(t) - 1] + Green[1, 0, i, len(t) - 1, len(t) - 1]))
-    #print('1 - (Green_gtr + Green_les) for Spin Down site', i, 'is', 1 - np.real(Green[0, 1, i, len(t) - 1, len(t) - 1] + Green[1, 1, i, len(t) - 1, len(t) - 1]))
-
-
-    #print('Population for Spin Up les on site', i, 'is', Green[1, 0, i, len(t) - 1, len(t) - 1])
-    #print('Population for Spin Down les on site', i, 'is', Green[1, 1, i, len(t) - 1, len(t) - 1])
-    #print('')
-    print('Population for Spin Up gtr on site', i, 'is', np.real(Green[0, 0, i, len(t) - 1, len(t) - 1]))
-    print('Population for Spin Down gtr on site', i, 'is', np.real(Green[0, 1, i, len(t) - 1, len(t) - 1]))
+    print('Population for Spin Up gtr on site', i, 'is', np.real(Green[0, 0, len(t) - 1, len(t) - 1]))
+    print('Population for Spin Down gtr on site', i, 'is', np.real(Green[0, 1, len(t) - 1, len(t) - 1]))
 
     return Green
 
