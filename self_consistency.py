@@ -36,20 +36,21 @@ def FT_time_to_freq(Green, tmax, dt, wmax, dw):
     G_N[:, :, t_0:t_end] = Green
     G_N[:, :, t_start:t_0] = np.real(Green[:, :, ::-1]) - 1j*np.imag(Green[:, :, ::-1])
 
-    # plt.plot(t, np.imag(G_N[1, 0, t_start:t_end]), label='D_les')
-    # plt.plot(t, np.imag(G_N[0, 0, t_start:t_end]), label='D_gtr')
-    # plt.legend()
-    # plt.savefig('Green_time.pdf')
-    # plt.close()
+    plt.plot(t, np.real(G_N[1, 0, t_start:t_end]), '-', t, np.imag(G_N[1, 0, t_start:t_end]), '--', label='les')
+    plt.plot(t, np.real(G_N[0, 0, t_start:t_end]), '-', t, np.imag(G_N[0, 0, t_start:t_end]), '--', label='gtr')
+    plt.legend()
+    plt.savefig('Green_time.pdf')
+    plt.close()
 
     for comp in range(2):
         for spin in range(2):
-            fG = ifftshift(fft(fftshift(G_N[comp, spin]))) * (dt/2)
+            fG = ifftshift(fft(fftshift(G_N[comp, spin]))) * (dt / 2.0)
+            # fG = ifftshift(fft(fftshift(G_N[comp, spin]))) * dt
             # G_w[comp, spin] = fG[-w_end:-w_start]
             G_w[comp, spin] = fG[w_start:w_end]
 
-    # plt.plot(w, np.real(G_w[1, 0]), '-', w, np.imag(G_w[1, 0]), '--', label = 'Hyb_les')
-    # plt.plot(w, np.real(G_w[0, 0]), '-', w, np.imag(G_w[0, 0]), '--', label = 'Hyb_gtr')
+    # plt.plot(w, np.real(G_w[1, 0]), '-', w, np.imag(G_w[1, 0]), '--', label = 'G_les')
+    # plt.plot(w, np.real(G_w[0, 0]), '-', w, np.imag(G_w[0, 0]), '--', label = 'G_gtr')
     # plt.legend()
     # plt.savefig('Green_freq.pdf')
     # plt.close()
@@ -90,7 +91,7 @@ def FT_freq_to_time(Green, tmax, dt, wmax, dw):
             fG= ifftshift(fft(fftshift(G_N[comp, spin]))) * dw / np.pi
             G_t[comp, spin] = fG[t_start:t_end]
 
-    return G_t[:, :, int(len(t)/2):]
+    return np.real(G_t[:, :, int(len(t)/2):]) - 1j* np.imag(G_t[:, :, int(len(t)/2):])
 
 
 def main():

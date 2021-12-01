@@ -5,12 +5,31 @@ from scipy.fftpack import fft, ifft, fftfreq, fftshift, ifftshift
 import argparse 
 import toml
 
+
 def tdiff(D, t1, t2):
     return D[:, :, t2 - t1] if t2 >= t1 else np.conj(D[:, :, t1 - t2])
+
 
 # fermi function
 def fermi_function(w, beta, mu):
     return 1 / (1 + np.exp(beta * (w - mu)))
+
+
+# density of states for hypercubic lattice
+def hypercubicDos(w, v_0):
+    """
+    DOS for the cubic lattice in the limit d -> inf 
+    """
+    return np.exp(-(w ** 2) / v_0 ** 2) / (np.sqrt(np.pi) * v_0) 
+
+
+# semicircular density of states for bethe lattice
+def semicircularDos(w, v_0):
+    """
+    DOS for Bethe Lattice
+    """
+    return 1 / (2 * np.pi * v_0 ** 2) * np.sqrt(4 * v_0 **2 - w ** 2)
+
 
 # flat band with soft cutoff
 def wideBandDos(w, wC, v):
@@ -19,13 +38,54 @@ def wideBandDos(w, wC, v):
     """
     return 1 / ((np.exp(v * (w-wC)) + 1) * (np.exp(-v * (w + wC)) + 1))
 
-# semicircular density of states for bethe lattice
-def semicircularDos(w, v_0):
+
+def genGaussianHyb(T, mu, v_0, tmax, dt, wC, dw):
     """
-    DOS for Bethe Lattice
+    Generate Hybridization function for Fermion bath with a semicircular DOS
     """
-    return 1 / (2 * np.pi * v_0 ** 2) * np.sqrt(4 * v_0 **2 - w ** 2)
- 
+    beta = 1.0 / T
+    Cut  = np.pi / dt
+
+    t = np.arange(0, tmax, dt)
+    w = np.arange(-wC, wC, dw)
+    fw = np.arange(-Cut, Cut, dw)
+
+    Delta = np.zeros((2, 2, len(t), len(t)), complex)  # indices are gtr/les | spin up/spin down
+
+    # window function padded with zeros for semicircular DOS
+    N = len(fw)
+    w_start = int(N / 2 - int(wC / dw))
+    w_end = int(N /2 + int(wC / dw))
+    dos = np.zeros(N)
+    # dos[w_start:w_end] = hypercubicDos(w, v_0)
+    dos = hypercubicDos(fw, v_0)
+
+    fermi = fermi_function(fw, beta, mu)
+
+    # frequency-domain Hybridization function
+    Hyb_les = dos * fermi
+    Hyb_gtr = dos * (1 - fermi)
+
+    fDelta_les = np.conj(ifftshift(fft(fftshift(Hyb_les)))) * dw / np.pi
+    # fDelta_les = (ifftshift(fft(fftshift(Hyb_les)))) * dw / np.pi
+    fDelta_gtr = ifftshift(fft(fftshift(Hyb_gtr))) * dw / np.pi
+
+    # get real times from fft_times
+    Delta = np.zeros((2, 2, len(t)), complex)  # greater/lesser | spin up/spin down
+
+    for t1 in range(len(t)):
+        Delta[0, :, t1] = fDelta_gtr[int(N / 2) + t1]
+        Delta[1, :, t1] = fDelta_les[int(N / 2) + t1]
+
+    # plt.plot(w, Hyb_les[w_start:w_end], label = 'Hyb_les')
+    # plt.plot(w, Hyb_gtr[w_start:w_end], label = 'Hyb_gtr')
+    # plt.plot(w, Hyb_gtr[w_start:w_end]+Hyb_les[w_start:w_end], label = 'Hyb_gtr+les')
+    # plt.legend()
+    # plt.savefig('Hyb_w.pdf')
+    # plt.close()
+
+    np.savez_compressed('Delta', t=t, D=Delta, dos=dos[w_start:w_end])
+
 def genSemicircularHyb(T, mu, v_0, tmax, dt, wmax, dw):
     """
     Generate Hybridization function for Fermion bath with a semicircular DOS
@@ -67,6 +127,7 @@ def genSemicircularHyb(T, mu, v_0, tmax, dt, wmax, dw):
     # plt.legend()
     # plt.savefig('Hyb_w.pdf')
     # plt.close()
+
     # plt.plot(t, np.real(Delta[1, spin]), '-', t, np.imag(Delta[1, spin]), '--', label = 'Delta_les')
     # plt.plot(t, np.real(Delta[0, spin]), '-', t, np.imag(Delta[0, spin]), '--', label = 'Delta_gtr')
     # plt.legend()
@@ -97,7 +158,7 @@ def genSemicircularHyb(T, mu, v_0, tmax, dt, wmax, dw):
     # wD = np.zeros((2, len(w)), complex)
 
     # D[:, t_0:t_end] = Delta[:, spin]
-    # D[:, t_start:t_0] = np.real(Delta[:, spin, ::-1]) - 1j*np.imag(Delta[:, spin, ::-1])
+    # #D[:, t_start:t_0] = np.real(Delta[:, spin, ::-1]) - 1j * np.imag(Delta[:, spin, ::-1])
 
     # plt.plot(t, np.imag(D[1,t_start:t_end]), label='D_les')
     # plt.plot(t, np.imag(D[0,t_start:t_end]), label='D_gtr')
@@ -130,7 +191,8 @@ def genSemicircularHyb(T, mu, v_0, tmax, dt, wmax, dw):
     # plt.savefig('Hyb_t_2.pdf')
     # plt.close()
 
-    np.savez_compressed('Delta', t=t, D=Delta)
+    np.savez_compressed('Delta', t=t, D=Delta, dos=dos[a:b])
+
 
 def genWideBandHyb(T, mu, tmax, dt, dw, wC, v):
     """
@@ -143,12 +205,15 @@ def genWideBandHyb(T, mu, tmax, dt, dw, wC, v):
     w = np.arange(-Cut, Cut, dw)
     N = int(2*Cut/dw)
 
+    dos = wideBandDos(w, wC, v)
+
     # frequency-domain Hybridization function
     Hyb_les = wideBandDos(w, wC, v) * fermi_function(w, beta, mu)
     Hyb_gtr = wideBandDos(w, wC, v) * (1 - fermi_function(w, beta, mu))
     
     # obtain time-domain Hybridization function with fft
-    fDelta_les = np.conj((ifftshift(fft(fftshift(Hyb_les)))) * dw / np.pi)
+    # fDelta_les = np.conj((ifftshift(fft(fftshift(Hyb_les)))) * dw / np.pi)
+    fDelta_les = ((ifftshift(fft(fftshift(Hyb_les)))) * dw / np.pi)
     fDelta_gtr = (ifftshift(fft(fftshift(Hyb_gtr)))) * dw / np.pi
     
     # get real times from fft_times
@@ -160,6 +225,7 @@ def genWideBandHyb(T, mu, tmax, dt, dw, wC, v):
         Delta[1, :, t_] = fDelta_les[int(N/2) + t_]
     
     np.savez_compressed('Delta', t=t, D=Delta)
+
 
 def main():
     parser = argparse.ArgumentParser(description = "run dmft")
@@ -175,6 +241,7 @@ def main():
     params.update(vars(args))
 
     genSemicircularHyb(params['T'], params['mu'], params['v_0'], params['tmax'], params['dt'], params['wC'], params['dw'])
+
 
 if __name__ == "__main__":
     main()

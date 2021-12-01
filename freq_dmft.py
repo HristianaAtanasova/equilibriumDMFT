@@ -56,7 +56,7 @@ def run_dmft(U, T, v_0, mu, wC, v, tmax, dt, dw, tol, treshold, n_loops, output,
         plt.plot(t, np.real(Green[0, 0, ::-1, len(t)-1]), '-', t, np.imag(Green[0, 0, ::-1, len(t)-1]), '--', label = 'Green_gtr')
         plt.plot(t, np.real(Green[1, 0, ::-1, len(t)-1]), '-', t, np.imag(Green[1, 0, ::-1, len(t)-1]), '--', label = 'Green_les')
         plt.legend()
-        plt.savefig('Greenfunctions.pdf')
+        plt.savefig('Greens_t.pdf')
         plt.close()
 
         Green_freq = self_consistency.FT_time_to_freq(Green[:, :, ::-1, len(t)-1], tmax, dt, wC, dw)
@@ -64,14 +64,20 @@ def run_dmft(U, T, v_0, mu, wC, v, tmax, dt, dw, tol, treshold, n_loops, output,
         Delta_freq[0] = Green_freq[1]
         Delta_freq[1] = Green_freq[0]
 
+        # Delta_freq = Green_freq
+
         Delta = self_consistency.FT_freq_to_time(Delta_freq, tmax, dt, wC, dw)
 
-        Delta = np.real(Delta) - 1j*np.imag(Delta) 
-
+        # plt.plot(w, np.real(Green_freq[0, 0]), '-', w, np.imag(Green_freq[0, 0]), '--', label = 'Green_w_gtr')
+        # plt.plot(w, np.real(Green_freq[1, 0]), '-', w, np.imag(Green_freq[1, 0]), '--', label = 'Green_w_les')
+        # plt.legend()
+        # plt.savefig('Greens_w.pdf')
+        # plt.close()
+ 
         plt.plot(t, np.real(Delta[0, 0]), '-', t, np.imag(Delta[0, 0]), '--', label = 'Delta_gtr')  
         plt.plot(t, np.real(Delta[1, 0]), '-', t, np.imag(Delta[1, 0]), '--', label = 'Delta_les')  
         plt.legend()
-        plt.savefig('Delta.pdf')
+        plt.savefig('Delta_t.pdf')
         plt.close()      
 
         diff = np.amax(np.abs(Green_old - Green))

@@ -12,7 +12,7 @@ def trapezConv(a, b, dt):
 
 
 def tdiff(D, t1, t2):
-    return D[:, :, t2 - t1] if t2 >= t1 else np.conj(D[:, :, t1 - t2])
+    return D[:, t2 - t1] if t2 >= t1 else np.conj(D[:, t1 - t2])
 
 
 def fermi_function(w, beta, mu):
@@ -26,38 +26,31 @@ def hypercubicDos(w, v):
     return np.exp(-(w ** 2) / v**2) / (np.sqrt(np.pi) * v) 
  
 
-def gen_k_dep_Green(T, v_0, mu, tmax, dt, wC, dw):
+def gen_k_dep_Green(T, v_0, U, mu, tmax, dt, wC, dw):
     """
     Generate Hybridization function for Fermion bath with a semicircular DOS
     """
     beta = 1.0 / T
-    wC = 10 
-
+    E_d = - U / 2.0
     t = np.arange(0, tmax, dt)
     w = np.arange(-wC, wC, dw)
     
-    G_k = np.zeros((2, 2, len(t), len(w)), complex)
-    Green_k = np.zeros((2, 2, len(t), len(t), len(w)), complex)
-    Green_k_inv = np.zeros((2, 2, len(t), len(t), len(w)), complex)
+    G_d = np.zeros((2, 2, len(t)), complex)
+    Green_d = np.zeros((2, 2, len(t), len(t)), complex)
 
-    Dos = hypercubicDos(w, v_0)
+    dos = hypercubicDos(w, v_0)
     Fermi = fermi_function(w, beta, mu)
 
     for t1 in range(len(t)):
-        G_k[0, :, t1] = 1j * np.exp(-1j * t[t1] * w) * (1 - Fermi) * Dos
-        G_k[1, :, t1] = 1j * np.exp(-1j * t[t1] * w) * Fermi * Dos
-    
+        G_d[0, :, t1] = np.exp(-1j * t[t1] * (E_d + U)) 
+        G_d[1, :, t1] = np.exp(-1j * t[t1] * E_d) 
+
     for t1 in range(len(t)):
         for t2 in range(len(t)):
-            Green_k[:, :, t1, t2] = tdiff(G_k, t1, t2)
+            Green_d[0, :, t1, t2] = tdiff(G_d[0], t1, t2)
+            Green_d[1, :, t1, t2] = tdiff(G_d[1], t1, t2)
 
-    for w1 in range(len(w)):
-        Green_k_inv[0, 0, :, :, w1] = inv(np.real(Green_k[0, 0, :, :, w1])) + 1j * inv(np.imag(Green_k[0, 0, :, :, w1])) 
-        Green_k_inv[0, 1, :, :, w1] = inv(np.real(Green_k[0, 1, :, :, w1])) + 1j * inv(np.imag(Green_k[0, 1, :, :, w1]))  
-        Green_k_inv[1, 0, :, :, w1] = inv(np.real(Green_k[1, 0, :, :, w1])) + 1j * inv(np.imag(Green_k[1, 0, :, :, w1]))
-        Green_k_inv[1, 1, :, :, w1] = inv(np.real(Green_k[1, 1, :, :, w1])) + 1j * inv(np.imag(Green_k[1, 1, :, :, w1]))
-
-    np.savez_compressed('Green_k_inv', D=Dos, G=Green_k_inv)
+    np.savez_compressed('Green_k', G=Green_d)
 
 def main():
     parser = argparse.ArgumentParser(description = "run dmft")
